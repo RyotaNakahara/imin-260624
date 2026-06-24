@@ -14,6 +14,25 @@ type RouteContext = {
   params: Promise<{ eventId: string; responseToken: string }>;
 };
 
+export async function GET(_request: Request, context: RouteContext) {
+  const { eventId, responseToken } = await context.params;
+
+  const event = await findEventOrNull(eventId);
+  if (!event) {
+    return jsonError("予定が見つかりません", 404);
+  }
+
+  const existing = await prisma.response.findFirst({
+    where: { eventId, responseToken },
+    include: { answers: true },
+  });
+  if (!existing) {
+    return jsonError("回答が見つかりません", 404);
+  }
+
+  return Response.json(serializeGuestResponse(existing));
+}
+
 export async function PUT(request: Request, context: RouteContext) {
   const { eventId, responseToken } = await context.params;
 

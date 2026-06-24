@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AnswerStatus } from "@/lib/schemas";
 
 type SlotOption = {
@@ -47,6 +47,24 @@ function clearResponseTokenCookie(eventId: string): void {
   document.cookie = `${key}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 
+function buildAnswersFromSlots(
+  slots: SlotOption[],
+  existingAnswers?: { slotId: string; status: AnswerStatus }[],
+): Record<string, AnswerStatus> {
+  const answerMap = new Map(
+    existingAnswers?.map((answer) => [answer.slotId, answer.status]) ?? [],
+  );
+  return slots.reduce<Record<string, AnswerStatus>>((acc, slot) => {
+    acc[slot.id] = answerMap.get(slot.id) ?? "unavailable";
+    return acc;
+  }, {});
+}
+
+type ExistingResponse = {
+  displayName: string;
+  answers: { slotId: string; status: AnswerStatus }[];
+};
+
 export function GuestResponseForm({
   eventId,
   eventTitle,
@@ -55,17 +73,56 @@ export function GuestResponseForm({
 }: GuestResponseFormProps) {
   const [displayName, setDisplayName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [storedToken, setStoredToken] = useState<string | null>(() =>
     getResponseTokenCookie(eventId),
   );
-  const [answers, setAnswers] = useState<Record<string, AnswerStatus>>(() => {
-    return slots.reduce<Record<string, AnswerStatus>>((acc, slot) => {
-      acc[slot.id] = "unavailable";
-      return acc;
-    }, {});
-  });
+  const [answers, setAnswers] = useState<Record<string, AnswerStatus>>(() =>
+    buildAnswersFromSlots(slots),
+  );
+
+  useEffect(() => {
+    if (!storedToken || deadlinePassed) return;
+
+    let cancelled = false;
+
+    async function loadExistingResponse() {
+      setLoadingExisting(true);
+      try {
+        const response = await fetch(
+          `/api/events/${encodeURIComponent(eventId)}/responses/${encodeURIComponent(storedToken!)}`,
+        );
+
+        if (response.status === 404) {
+          clearResponseTokenCookie(eventId);
+          if (!cancelled) {
+            setStoredToken(null);
+          }
+          return;
+        }
+
+        if (!response.ok) return;
+
+        const data = (await response.json()) as ExistingResponse;
+        if (cancelled) return;
+
+        setDisplayName(data.displayName);
+        setAnswers(buildAnswersFromSlots(slots, data.answers));
+      } finally {
+        if (!cancelled) {
+          setLoadingExisting(false);
+        }
+      }
+    }
+
+    void loadExistingResponse();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [deadlinePassed, eventId, slots, storedToken]);
 
   const answerList = useMemo(
     () =>
@@ -160,6 +217,11 @@ export function GuestResponseForm({
         </div>
       ) : (
         <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
+        {loadingExisting ? (
+          <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+            前回の回答を読み込んでいます...
+          </p>
+        ) : null}
         <div>
           <label
             htmlFor="displayName"
@@ -172,7 +234,7 @@ export function GuestResponseForm({
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            disabled={deadlinePassed || submitting}
+            disabled={deadlinePassed || submitting || loadingExisting}
             maxLength={50}
             required
             className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-500 disabled:cursor-not-allowed disabled:bg-zinc-100"
@@ -193,7 +255,7 @@ export function GuestResponseForm({
                 <div className="mt-3 flex gap-2 sm:mt-0">
                   <button
                     type="button"
-                    disabled={deadlinePassed || submitting}
+                    disabled={deadlinePassed || submitting || loadingExisting}
                     onClick={() =>
                       setAnswers((prev) => ({ ...prev, [slot.id]: "available" }))
                     }
@@ -207,7 +269,7 @@ export function GuestResponseForm({
                   </button>
                   <button
                     type="button"
-                    disabled={deadlinePassed || submitting}
+                    disabled={deadlinePassed || submitting || loadingExisting}
                     onClick={() =>
                       setAnswers((prev) => ({ ...prev, [slot.id]: "unavailable" }))
                     }
@@ -239,10 +301,16 @@ export function GuestResponseForm({
 
         <button
           type="submit"
-          disabled={deadlinePassed || submitting}
+          disabled={deadlinePassed || submitting || loadingExisting}
           className="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
         >
-          {submitting ? "送信中..." : storedToken ? "回答を更新" : "回答を送信"}
+          {loadingExisting
+            ? "読み込み中..."
+            : submitting
+              ? "送信中..."
+              : storedToken
+                ? "回答を更新"
+                : "回答を送信"}
         </button>
         </form>
       )}
