@@ -17,9 +17,10 @@ type ManageEventData = {
   responses: Array<{
     id: string;
     displayName: string;
+    comment: string | null;
     answers: Array<{
       slotId: string;
-      status: "available" | "unavailable";
+      status: "available" | "unavailable" | "tentative";
     }>;
   }>;
 };

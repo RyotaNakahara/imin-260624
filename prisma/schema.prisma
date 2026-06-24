@@ -15,6 +15,7 @@ enum SlotType {
 enum AnswerStatus {
   available
   unavailable
+  tentative
 }
 
 model Event {
@@ -48,6 +49,7 @@ model Response {
   eventId       String
   responseToken String   @unique
   displayName   String
+  comment       String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

@@ -25,6 +25,7 @@ type SummarySlot = {
   slotId: string;
   available: number;
   unavailable: number;
+  tentative: number;
 };
 
 type SummaryResponse = {
@@ -78,6 +79,7 @@ function buildSummaryItems(
       label: slot.label,
       available: counts?.available ?? 0,
       unavailable: counts?.unavailable ?? 0,
+      tentative: counts?.tentative ?? 0,
     };
   });
 }

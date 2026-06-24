@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const slotTypeSchema = z.enum(["date", "datetime"]);
-export const answerStatusSchema = z.enum(["available", "unavailable"]);
+export const answerStatusSchema = z.enum(["available", "unavailable", "tentative"]);
 
 export const createSlotSchema = z.object({
   type: slotTypeSchema,
@@ -36,11 +36,13 @@ export const answerInputSchema = z.object({
 
 export const createResponseSchema = z.object({
   displayName: z.string().trim().min(1).max(50),
+  comment: z.string().trim().max(500).optional().nullable(),
   answers: z.array(answerInputSchema).min(1),
 });
 
 export const updateResponseSchema = z.object({
   displayName: z.string().trim().min(1).max(50).optional(),
+  comment: z.string().trim().max(500).optional().nullable(),
   answers: z.array(answerInputSchema).min(1),
 });
 

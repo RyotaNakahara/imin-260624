@@ -78,6 +78,9 @@ export async function PUT(request: Request, context: RouteContext) {
       where: { id: existing.id },
       data: {
         displayName: parsed.data.displayName ?? existing.displayName,
+        ...(parsed.data.comment !== undefined
+          ? { comment: parsed.data.comment?.trim() || null }
+          : {}),
         answers: {
           create: parsed.data.answers.map((answer) => ({
             id: generateId(),

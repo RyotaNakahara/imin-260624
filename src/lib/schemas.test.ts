@@ -70,10 +70,14 @@ describe("schemas", () => {
   });
 
   describe("createResponseSchema", () => {
-    it("accepts a valid response", () => {
+    it("accepts a valid response with comment and tentative status", () => {
       const result = createResponseSchema.safeParse({
         displayName: "田中",
-        answers: [{ slotId: "slot-1", status: "available" }],
+        comment: "夕方以降なら調整できます",
+        answers: [
+          { slotId: "slot-1", status: "available" },
+          { slotId: "slot-2", status: "tentative" },
+        ],
       });
       expect(result.success).toBe(true);
     });
@@ -89,6 +93,15 @@ describe("schemas", () => {
     it("rejects a display name longer than 50 characters", () => {
       const result = createResponseSchema.safeParse({
         displayName: "a".repeat(51),
+        answers: [{ slotId: "slot-1", status: "available" }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects a comment longer than 500 characters", () => {
+      const result = createResponseSchema.safeParse({
+        displayName: "田中",
+        comment: "a".repeat(501),
         answers: [{ slotId: "slot-1", status: "available" }],
       });
       expect(result.success).toBe(false);

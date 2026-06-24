@@ -26,7 +26,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const summaryMap = new Map(
     slotIds.map((slotId) => [
       slotId,
-      { slotId, available: 0, unavailable: 0 },
+      { slotId, available: 0, unavailable: 0, tentative: 0 },
     ]),
   );
 
@@ -38,6 +38,8 @@ export async function GET(_request: Request, context: RouteContext) {
       entry.available = row._count._all;
     } else if (row.status === "unavailable") {
       entry.unavailable = row._count._all;
+    } else if (row.status === "tentative") {
+      entry.tentative = row._count._all;
     }
   }
 

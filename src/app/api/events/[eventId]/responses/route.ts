@@ -53,6 +53,7 @@ export async function POST(request: Request, context: RouteContext) {
       eventId,
       responseToken,
       displayName: parsed.data.displayName,
+      comment: parsed.data.comment?.trim() || null,
       answers: {
         create: parsed.data.answers.map((answer) => ({
           id: generateId(),

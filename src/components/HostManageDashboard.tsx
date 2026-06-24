@@ -7,6 +7,8 @@ import { ResponseMatrix } from "@/components/ResponseMatrix";
 import { ResponseSummary } from "@/components/ResponseSummary";
 import { formatJstDateTime } from "@/lib/datetime";
 
+import type { AnswerStatus } from "@/lib/schemas";
+
 type ManageSlot = {
   id: string;
   type: "date" | "datetime";
@@ -17,9 +19,10 @@ type ManageSlot = {
 type ManageResponse = {
   id: string;
   displayName: string;
+  comment: string | null;
   answers: Array<{
     slotId: string;
-    status: "available" | "unavailable";
+    status: AnswerStatus;
   }>;
 };
 
@@ -60,11 +63,18 @@ export function HostManageDashboard({
             answer.slotId === slot.id && answer.status === "unavailable",
         ),
       ).length;
+      const tentative = data.responses.filter((response) =>
+        response.answers.some(
+          (answer) =>
+            answer.slotId === slot.id && answer.status === "tentative",
+        ),
+      ).length;
       return {
         slotId: slot.id,
         label: slot.label,
         available,
         unavailable,
+        tentative,
       };
     });
   }, [data.responses, data.slots]);

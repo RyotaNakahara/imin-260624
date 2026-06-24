@@ -103,6 +103,7 @@ export function serializeGuestResponse(
     id: response.id,
     responseToken: response.responseToken,
     displayName: response.displayName,
+    comment: response.comment,
     createdAt: response.createdAt.toISOString(),
     updatedAt: response.updatedAt.toISOString(),
     answers: response.answers.map(serializeAnswer),

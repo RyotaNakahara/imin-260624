@@ -1,11 +1,14 @@
+import type { AnswerStatus } from "@/lib/schemas";
+
 type ResponseAnswer = {
   slotId: string;
-  status: "available" | "unavailable";
+  status: AnswerStatus;
 };
 
 type GuestResponse = {
   id: string;
   displayName: string;
+  comment: string | null;
   answers: ResponseAnswer[];
 };
 
@@ -21,6 +24,7 @@ type ResponseMatrixProps = {
 
 function renderAnswer(status: ResponseAnswer["status"] | undefined): string {
   if (status === "available") return "○";
+  if (status === "tentative") return "△";
   if (status === "unavailable") return "×";
   return "-";
 }
@@ -47,6 +51,7 @@ export function ResponseMatrix({ slots, responses }: ResponseMatrixProps) {
                 {slot.label}
               </th>
             ))}
+            <th className="px-3 py-2 font-medium">コメント</th>
           </tr>
         </thead>
         <tbody>
@@ -68,6 +73,13 @@ export function ResponseMatrix({ slots, responses }: ResponseMatrixProps) {
                   </td>
                 );
               })}
+              <td className="max-w-xs px-3 py-2 text-sm text-zinc-600">
+                {response.comment ? (
+                  <span className="whitespace-pre-wrap">{response.comment}</span>
+                ) : (
+                  <span className="text-zinc-400">—</span>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>

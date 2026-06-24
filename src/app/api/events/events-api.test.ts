@@ -181,6 +181,39 @@ describe("events API", () => {
       expect(body.answers).toHaveLength(2);
     });
 
+    it("creates a response with comment and tentative answers", async () => {
+      const { body: created } = await createSampleEvent();
+      const event = await prisma.event.findUnique({
+        where: { id: created.eventId },
+        include: { slots: { orderBy: { sortOrder: "asc" } } },
+      });
+      const slots = event!.slots;
+
+      const response = await createResponse(
+        new Request(
+          `http://localhost:3000/api/events/${created.eventId}/responses`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              displayName: "ゲストB",
+              comment: "夕方以降なら調整できます",
+              answers: [
+                { slotId: slots[0].id, status: "tentative" },
+                { slotId: slots[1].id, status: "available" },
+              ],
+            }),
+          },
+        ),
+        routeContext(created.eventId),
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(body.comment).toBe("夕方以降なら調整できます");
+      expect(body.answers[0].status).toBe("tentative");
+    });
+
     it("returns 403 after the deadline has passed", async () => {
       const { body: created } = await createSampleEvent({
         deadline: "2026-06-25T18:00",
@@ -419,11 +452,13 @@ describe("events API", () => {
         slotId: slots[0].id,
         available: 2,
         unavailable: 0,
+        tentative: 0,
       });
       expect(body.slots[1]).toEqual({
         slotId: slots[1].id,
         available: 1,
         unavailable: 1,
+        tentative: 0,
       });
     });
   });

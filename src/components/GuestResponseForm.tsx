@@ -63,6 +63,7 @@ function buildAnswersFromSlots(
 
 type ExistingResponse = {
   displayName: string;
+  comment: string | null;
   answers: { slotId: string; status: AnswerStatus }[];
 };
 
@@ -74,6 +75,7 @@ export function GuestResponseForm({
 }: GuestResponseFormProps) {
   const router = useRouter();
   const [displayName, setDisplayName] = useState("");
+  const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -111,6 +113,7 @@ export function GuestResponseForm({
         if (cancelled) return;
 
         setDisplayName(data.displayName);
+        setComment(data.comment ?? "");
         setAnswers(buildAnswersFromSlots(slots, data.answers));
       } finally {
         if (!cancelled) {
@@ -138,6 +141,7 @@ export function GuestResponseForm({
   const submitResponse = async (token: string | null): Promise<SubmitResult> => {
     const payload = {
       displayName,
+      comment: comment.trim() || null,
       answers: answerList,
     };
 
@@ -162,7 +166,6 @@ export function GuestResponseForm({
     }
 
     if (response.status === 404 && isUpdateMode) {
-      // Cookie token が古い場合は新規作成にフォールバックする
       clearResponseTokenCookie(eventId);
       setStoredToken(null);
       return submitResponse(null);
@@ -245,6 +248,26 @@ export function GuestResponseForm({
           />
         </div>
 
+        <div>
+          <label
+            htmlFor="comment"
+            className="mb-1 block text-sm font-medium text-zinc-800"
+          >
+            コメント
+            <span className="ml-1 font-normal text-zinc-500">（任意）</span>
+          </label>
+          <textarea
+            id="comment"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            disabled={deadlinePassed || submitting || loadingExisting}
+            maxLength={500}
+            rows={3}
+            className="w-full resize-y rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-500 disabled:cursor-not-allowed disabled:bg-zinc-100"
+            placeholder="例: 夕方以降なら調整できるかもしれません"
+          />
+        </div>
+
         <div className="space-y-2">
           <p className="text-sm font-medium text-zinc-800">候補日ごとの回答</p>
           {slots.map((slot) => {
@@ -255,7 +278,7 @@ export function GuestResponseForm({
                 className="rounded-lg border border-zinc-200 p-3 sm:flex sm:items-center sm:justify-between"
               >
                 <p className="text-sm font-medium text-zinc-900">{slot.label}</p>
-                <div className="mt-3 flex gap-2 sm:mt-0">
+                <div className="mt-3 flex flex-wrap gap-2 sm:mt-0">
                   <button
                     type="button"
                     disabled={deadlinePassed || submitting || loadingExisting}
@@ -269,6 +292,20 @@ export function GuestResponseForm({
                     } disabled:cursor-not-allowed disabled:opacity-60`}
                   >
                     出席可
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deadlinePassed || submitting || loadingExisting}
+                    onClick={() =>
+                      setAnswers((prev) => ({ ...prev, [slot.id]: "tentative" }))
+                    }
+                    className={`rounded-md px-3 py-1.5 text-sm transition ${
+                      current === "tentative"
+                        ? "bg-amber-500 text-white"
+                        : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                    } disabled:cursor-not-allowed disabled:opacity-60`}
+                  >
+                    未定
                   </button>
                   <button
                     type="button"

@@ -3,6 +3,7 @@ type ResponseSummaryItem = {
   label: string;
   available: number;
   unavailable: number;
+  tentative: number;
 };
 
 type ResponseSummaryProps = {
@@ -12,7 +13,7 @@ type ResponseSummaryProps = {
 export function ResponseSummary({ items }: ResponseSummaryProps) {
   const maxAvailable = Math.max(...items.map((item) => item.available), 0);
   const hasResponses = items.some(
-    (item) => item.available > 0 || item.unavailable > 0,
+    (item) => item.available > 0 || item.unavailable > 0 || item.tentative > 0,
   );
 
   return (
@@ -42,6 +43,9 @@ export function ResponseSummary({ items }: ResponseSummaryProps) {
                 <p className="mt-1 text-sm text-zinc-700">
                   出席可:{" "}
                   <span className="font-semibold">{summary.available}</span>
+                  {" / "}
+                  未定:{" "}
+                  <span className="font-semibold">{summary.tentative}</span>
                   {" / "}
                   出席不可:{" "}
                   <span className="font-semibold">{summary.unavailable}</span>
