@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum SlotType {
+  date
+  datetime
+}
+
+enum AnswerStatus {
+  available
+  unavailable
+}
+
+model Event {
+  id          String    @id
+  hostToken   String    @unique
+  title       String
+  description String?
+  deadline    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  slots     Slot[]
+  responses Response[]
+}
+
+model Slot {
+  id        String   @id
+  eventId   String
+  type      SlotType
+  startAt   DateTime
+  sortOrder Int
+
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@index([eventId])
+}
+
+model Response {
+  id            String   @id
+  eventId       String
+  responseToken String   @unique
+  displayName   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@index([eventId])
+}
+
+model Answer {
+  id         String       @id
+  responseId String
+  slotId     String
+  status     AnswerStatus
+
+  response Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  slot     Slot     @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  @@unique([responseId, slotId])
+  @@index([responseId])
+  @@index([slotId])
+}

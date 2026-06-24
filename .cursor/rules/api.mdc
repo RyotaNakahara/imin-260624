@@ -1,0 +1,40 @@
+---
+description: API route conventions for event and response endpoints
+globs: src/app/api/**/*
+alwaysApply: false
+---
+
+# API conventions
+
+## Structure
+
+- Routes under `src/app/api/events/` per `docs/design.md` §6
+- Validate all inputs with Zod schemas from `src/lib/schemas.ts`
+- Use Prisma client from `src/lib/db.ts`
+
+## Authorization
+
+| Route | Credential |
+|-------|------------|
+| Guest read/respond | `eventId` in path |
+| Host read/update | `hostToken` query or header |
+| Guest update | `responseToken` in path |
+
+Return `404` for bad `eventId` or `hostToken`. Return `403` when token is valid format but not allowed (e.g. guest write after deadline).
+
+## Tokens
+
+- `eventId`: nanoid, length ≥ 21
+- `hostToken`: nanoid, length ≥ 32
+- `responseToken`: generated on response create; unique per response
+
+## Data rules
+
+- Slots: `type` is `date` | `datetime`; `startAt` stored in JST semantics
+- Deleting a slot cascades deletes on related `Answer` rows
+- `PATCH` events: allow title, description, deadline, slot add/remove
+
+## Responses
+
+- Use consistent JSON shape; include `{ error: string }` on failure
+- Appropriate status codes: 400 validation, 403 forbidden, 404 not found, 201 created

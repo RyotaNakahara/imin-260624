@@ -1,0 +1,41 @@
+---
+description: Core conventions for the imin scheduling app — stack, scope, and design doc authority
+alwaysApply: true
+---
+
+# Project conventions
+
+## Authority
+
+`docs/design.md` is the single source of truth. Implement only what it specifies.
+
+## Stack (fixed)
+
+- Next.js 15 App Router, TypeScript, Tailwind CSS
+- SQLite + Prisma (no Postgres)
+- Zod validation, nanoid tokens, date-fns (JST)
+
+## Product constraints
+
+- No user login or accounts
+- Access via unguessable URL tokens (`eventId`, `hostToken`, `responseToken`)
+- Guest answers: `available` / `unavailable` only
+- Timezone: JST for all date/time display and input
+- UI copy in Japanese
+
+## Code style
+
+- Minimal diff; no scope creep
+- Shared schemas in `src/lib/schemas.ts`
+- API logic in `src/app/api/`; UI in `src/app/` and `src/components/`
+- 404 for invalid IDs/tokens without leaking resource existence
+
+## Agent roles
+
+| Agent | Owns |
+|-------|------|
+| architect | Prisma, API, lib utilities |
+| frontend | Pages, components, client UX |
+| qa | Acceptance tests, README |
+
+Do not commit unless the user asks.

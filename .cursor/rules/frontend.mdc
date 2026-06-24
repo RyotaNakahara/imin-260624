@@ -1,0 +1,43 @@
+---
+description: Frontend page and component conventions
+globs: src/app/**/*.tsx,src/components/**/*
+alwaysApply: false
+---
+
+# Frontend conventions
+
+## Pages (App Router)
+
+| Route | Role |
+|-------|------|
+| `/` | Landing |
+| `/new` | Create event |
+| `/e/[eventId]` | Guest respond |
+| `/e/[eventId]/created` | Post-create links |
+| `/e/[eventId]/manage` | Host dashboard |
+
+## UX
+
+- Mobile-first; touch-friendly controls
+- Japanese labels: 出席可 / 出席不可, 回答期限, etc.
+- Copy-link buttons on host-facing pages
+- Confirm before deleting slots that have answers
+- After deadline: read-only guest view with clear message
+
+## Data fetching
+
+- Prefer Server Components for initial load when no client interactivity needed
+- Use `"use client"` for forms, matrix toggles, dialogs, clipboard API
+- Store `responseToken` in cookie for guest re-edit
+
+## Display
+
+- Format dates: `yyyy/MM/dd` (date-only) or `yyyy/MM/dd HH:mm` (datetime), JST
+- Host matrix: rows = guests, columns = slots, cells = ○/×
+- Highlight best slot(s) by 出席可 count on manage page
+
+## Components
+
+Place shared UI in `src/components/` (e.g. `EventForm`, `SlotPicker`, `ResponseMatrix`, `CopyLinkButton`).
+
+Do not add UI libraries beyond Tailwind unless already in the project.
