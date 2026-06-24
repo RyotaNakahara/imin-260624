@@ -2,22 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { SlotPicker } from "@/components/SlotPicker";
+import { SlotPicker, type SlotField } from "@/components/SlotPicker";
 import {
   isPastDeadline,
   jstDateTimeStringToDate,
 } from "@/lib/datetime";
 import { createEventSchema, type SlotType } from "@/lib/schemas";
-
-type SlotField = {
-  id: string;
-  startAt: string;
-};
-
-const INITIAL_SLOT: SlotField = {
-  id: crypto.randomUUID(),
-  startAt: "",
-};
 
 function nextDateTimeValue(value: string, nextType: SlotType): string {
   if (!value) return "";
@@ -35,12 +25,10 @@ export function EventForm() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [slotType, setSlotType] = useState<SlotType>("date");
-  const [slots, setSlots] = useState<SlotField[]>([INITIAL_SLOT]);
+  const [slots, setSlots] = useState<SlotField[]>([]);
   const [deadline, setDeadline] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const canAddSlot = slots.length < 30;
 
   const deadlineWarning = useMemo(() => {
     if (!deadline.trim()) return null;
@@ -60,7 +48,9 @@ export function EventForm() {
       title,
       description: description.trim() === "" ? null : description,
       deadline: deadline.trim() === "" ? null : deadline,
-      slots: slots.map((slot) => ({
+      slots: slots
+        .filter((slot) => slot.startAt.trim() !== "")
+        .map((slot) => ({
         type: slotType,
         startAt: slot.startAt,
       })),
@@ -75,26 +65,6 @@ export function EventForm() {
         ...slot,
         startAt: nextDateTimeValue(slot.startAt, nextType),
       })),
-    );
-  }
-
-  function handleChangeSlot(id: string, value: string) {
-    setSlots((current) =>
-      current.map((slot) => (slot.id === id ? { ...slot, startAt: value } : slot)),
-    );
-  }
-
-  function handleAddSlot() {
-    if (!canAddSlot) return;
-    setSlots((current) => [
-      ...current,
-      { id: crypto.randomUUID(), startAt: "" },
-    ]);
-  }
-
-  function handleRemoveSlot(id: string) {
-    setSlots((current) =>
-      current.length === 1 ? current : current.filter((slot) => slot.id !== id),
     );
   }
 
@@ -181,9 +151,7 @@ export function EventForm() {
         slotType={slotType}
         slots={slots}
         onSlotTypeChange={handleSlotTypeChange}
-        onChangeSlot={handleChangeSlot}
-        onAddSlot={handleAddSlot}
-        onRemoveSlot={handleRemoveSlot}
+        onSlotsChange={setSlots}
       />
 
       <div className="space-y-2">

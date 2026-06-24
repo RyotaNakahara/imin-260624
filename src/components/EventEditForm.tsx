@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { SlotPicker } from "@/components/SlotPicker";
+import { SlotPicker, type SlotField } from "@/components/SlotPicker";
 import {
   isPastDeadline,
   jstDateTimeStringToDate,
@@ -10,12 +10,6 @@ import {
   toJstDateTimeLocalInput,
 } from "@/lib/datetime";
 import { updateEventSchema, type SlotType } from "@/lib/schemas";
-
-type SlotField = {
-  id: string;
-  dbId?: string;
-  startAt: string;
-};
 
 type EventEditFormProps = {
   eventId: string;
@@ -106,7 +100,9 @@ export function EventEditForm({
       title,
       description: description.trim() === "" ? null : description,
       deadline: deadline.trim() === "" ? null : deadline,
-      slots: slots.map((slot) => ({
+      slots: slots
+        .filter((slot) => slot.startAt.trim() !== "")
+        .map((slot) => ({
         ...(slot.dbId ? { id: slot.dbId } : {}),
         type: slotType,
         startAt: slot.startAt,
@@ -125,34 +121,13 @@ export function EventEditForm({
     );
   }
 
-  function handleChangeSlot(id: string, value: string) {
-    setSlots((current) =>
-      current.map((slot) => (slot.id === id ? { ...slot, startAt: value } : slot)),
-    );
-  }
-
-  function handleAddSlot() {
-    if (slots.length >= 30) return;
-    setSlots((current) => [
-      ...current,
-      { id: crypto.randomUUID(), startAt: "" },
-    ]);
-  }
-
-  function handleRemoveSlot(id: string) {
-    const target = slots.find((slot) => slot.id === id);
-    if (!target) return;
-
-    if (target.dbId && slotsWithAnswersSet.has(target.dbId)) {
-      const confirmed = window.confirm(
+  function handleBeforeRemoveSlot(slot: SlotField): boolean {
+    if (slot.dbId && slotsWithAnswersSet.has(slot.dbId)) {
+      return window.confirm(
         "この候補日には回答があります。削除すると関連する回答も削除されます。よろしいですか？",
       );
-      if (!confirmed) return;
     }
-
-    setSlots((current) =>
-      current.length === 1 ? current : current.filter((slot) => slot.id !== id),
-    );
+    return true;
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -240,9 +215,8 @@ export function EventEditForm({
         slotType={slotType}
         slots={slots}
         onSlotTypeChange={handleSlotTypeChange}
-        onChangeSlot={handleChangeSlot}
-        onAddSlot={handleAddSlot}
-        onRemoveSlot={handleRemoveSlot}
+        onSlotsChange={setSlots}
+        onBeforeRemoveSlot={handleBeforeRemoveSlot}
       />
 
       <div className="space-y-2">
