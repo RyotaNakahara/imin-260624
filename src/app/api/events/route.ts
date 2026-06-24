@@ -1,11 +1,13 @@
 import { prisma } from "@/lib/db";
 import {
   getBaseUrl,
+  hasDuplicateSlots,
   jsonError,
   parseDeadlineInput,
   parseSlotStartAt,
   sortSlotsByStartAt,
 } from "@/lib/events";
+import { validateFutureDeadline } from "@/lib/datetime";
 import { createEventSchema } from "@/lib/schemas";
 import {
   generateEventId,
@@ -35,7 +37,23 @@ export async function POST(request: Request) {
     return jsonError("回答期限の形式が正しくありません", 400);
   }
 
+  const deadlineError = validateFutureDeadline(deadlineDate);
+  if (deadlineError) {
+    return jsonError(deadlineError, 400);
+  }
+
   const sortedSlots = sortSlotsByStartAt(slots);
+
+  try {
+    if (hasDuplicateSlots(sortedSlots)) {
+      return jsonError("同じ候補日が重複しています", 400);
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "候補日の形式が正しくありません";
+    return jsonError(message, 400);
+  }
+
   const eventId = generateEventId();
   const hostToken = generateHostToken();
 

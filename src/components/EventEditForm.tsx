@@ -6,18 +6,35 @@ import { SlotPicker } from "@/components/SlotPicker";
 import {
   isPastDeadline,
   jstDateTimeStringToDate,
+  toJstDateInput,
+  toJstDateTimeLocalInput,
 } from "@/lib/datetime";
-import { createEventSchema, type SlotType } from "@/lib/schemas";
+import { updateEventSchema, type SlotType } from "@/lib/schemas";
 
 type SlotField = {
   id: string;
+  dbId?: string;
   startAt: string;
 };
 
-const INITIAL_SLOT: SlotField = {
-  id: crypto.randomUUID(),
-  startAt: "",
+type EventEditFormProps = {
+  eventId: string;
+  hostToken: string;
+  initialTitle: string;
+  initialDescription: string | null;
+  initialDeadline: string | null;
+  initialSlots: Array<{
+    id: string;
+    type: SlotType;
+    startAt: string;
+  }>;
+  slotsWithAnswers: string[];
 };
+
+function slotToInputValue(type: SlotType, iso: string): string {
+  const date = new Date(iso);
+  return type === "date" ? toJstDateInput(date) : toJstDateTimeLocalInput(date);
+}
 
 function nextDateTimeValue(value: string, nextType: SlotType): string {
   if (!value) return "";
@@ -30,17 +47,45 @@ function nextDateTimeValue(value: string, nextType: SlotType): string {
   return `${value}T09:00`;
 }
 
-export function EventForm() {
+function resolveInitialSlotType(
+  slots: EventEditFormProps["initialSlots"],
+): SlotType {
+  return slots[0]?.type ?? "date";
+}
+
+export function EventEditForm({
+  eventId,
+  hostToken,
+  initialTitle,
+  initialDescription,
+  initialDeadline,
+  initialSlots,
+  slotsWithAnswers,
+}: EventEditFormProps) {
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [slotType, setSlotType] = useState<SlotType>("date");
-  const [slots, setSlots] = useState<SlotField[]>([INITIAL_SLOT]);
-  const [deadline, setDeadline] = useState("");
+  const [title, setTitle] = useState(initialTitle);
+  const [description, setDescription] = useState(initialDescription ?? "");
+  const [slotType, setSlotType] = useState<SlotType>(
+    resolveInitialSlotType(initialSlots),
+  );
+  const [slots, setSlots] = useState<SlotField[]>(
+    initialSlots.map((slot) => ({
+      id: crypto.randomUUID(),
+      dbId: slot.id,
+      startAt: slotToInputValue(slot.type, slot.startAt),
+    })),
+  );
+  const [deadline, setDeadline] = useState(
+    initialDeadline ? toJstDateTimeLocalInput(new Date(initialDeadline)) : "",
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const canAddSlot = slots.length < 30;
+  const slotsWithAnswersSet = useMemo(
+    () => new Set(slotsWithAnswers),
+    [slotsWithAnswers],
+  );
 
   const deadlineWarning = useMemo(() => {
     if (!deadline.trim()) return null;
@@ -57,15 +102,17 @@ export function EventForm() {
 
   const payload = useMemo(
     () => ({
+      hostToken,
       title,
       description: description.trim() === "" ? null : description,
       deadline: deadline.trim() === "" ? null : deadline,
       slots: slots.map((slot) => ({
+        ...(slot.dbId ? { id: slot.dbId } : {}),
         type: slotType,
         startAt: slot.startAt,
       })),
     }),
-    [deadline, description, slotType, slots, title],
+    [deadline, description, hostToken, slotType, slots, title],
   );
 
   function handleSlotTypeChange(nextType: SlotType) {
@@ -85,7 +132,7 @@ export function EventForm() {
   }
 
   function handleAddSlot() {
-    if (!canAddSlot) return;
+    if (slots.length >= 30) return;
     setSlots((current) => [
       ...current,
       { id: crypto.randomUUID(), startAt: "" },
@@ -93,6 +140,16 @@ export function EventForm() {
   }
 
   function handleRemoveSlot(id: string) {
+    const target = slots.find((slot) => slot.id === id);
+    if (!target) return;
+
+    if (target.dbId && slotsWithAnswersSet.has(target.dbId)) {
+      const confirmed = window.confirm(
+        "この候補日には回答があります。削除すると関連する回答も削除されます。よろしいですか？",
+      );
+      if (!confirmed) return;
+    }
+
     setSlots((current) =>
       current.length === 1 ? current : current.filter((slot) => slot.id !== id),
     );
@@ -101,22 +158,25 @@ export function EventForm() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
+    setSuccessMessage(null);
 
     if (deadlineWarning) {
       setErrorMessage(deadlineWarning);
       return;
     }
 
-    const validated = createEventSchema.safeParse(payload);
+    const validated = updateEventSchema.safeParse(payload);
     if (!validated.success) {
-      setErrorMessage(validated.error.issues[0]?.message ?? "入力内容を確認してください");
+      setErrorMessage(
+        validated.error.issues[0]?.message ?? "入力内容を確認してください",
+      );
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/events", {
-        method: "POST",
+      const response = await fetch(`/api/events/${eventId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -125,16 +185,12 @@ export function EventForm() {
         const data = (await response.json().catch(() => null)) as
           | { error?: string }
           | null;
-        setErrorMessage(data?.error ?? "予定の作成に失敗しました");
+        setErrorMessage(data?.error ?? "予定の更新に失敗しました");
         return;
       }
 
-      const data = (await response.json()) as {
-        eventId: string;
-        hostToken: string;
-      };
-
-      router.push(`/e/${data.eventId}/created?token=${data.hostToken}`);
+      setSuccessMessage("予定を更新しました");
+      router.refresh();
     } catch {
       setErrorMessage("通信に失敗しました。時間をおいて再度お試しください。");
     } finally {
@@ -143,37 +199,40 @@ export function EventForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm"
+    >
+      <h2 className="text-lg font-semibold text-zinc-900">予定を編集</h2>
+
       <div className="space-y-2">
-        <label htmlFor="title" className="text-sm font-medium text-zinc-800">
+        <label htmlFor="edit-title" className="text-sm font-medium text-zinc-800">
           タイトル <span className="text-red-600">*</span>
         </label>
         <input
-          id="title"
+          id="edit-title"
           type="text"
           required
           maxLength={100}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-          placeholder="例: 7月キックオフ打ち合わせ"
         />
       </div>
 
       <div className="space-y-2">
         <label
-          htmlFor="description"
+          htmlFor="edit-description"
           className="text-sm font-medium text-zinc-800"
         >
           説明（任意）
         </label>
         <textarea
-          id="description"
+          id="edit-description"
           maxLength={2000}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           className="min-h-24 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-          placeholder="場所・目的・補足など"
         />
       </div>
 
@@ -187,11 +246,14 @@ export function EventForm() {
       />
 
       <div className="space-y-2">
-        <label htmlFor="deadline" className="text-sm font-medium text-zinc-800">
+        <label
+          htmlFor="edit-deadline"
+          className="text-sm font-medium text-zinc-800"
+        >
           回答期限（任意）
         </label>
         <input
-          id="deadline"
+          id="edit-deadline"
           type="datetime-local"
           value={deadline}
           onChange={(event) => setDeadline(event.target.value)}
@@ -208,13 +270,18 @@ export function EventForm() {
           {errorMessage}
         </p>
       ) : null}
+      {successMessage ? (
+        <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          {successMessage}
+        </p>
+      ) : null}
 
       <button
         type="submit"
         disabled={isSubmitting}
         className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {isSubmitting ? "作成中..." : "予定を作成する"}
+        {isSubmitting ? "更新中..." : "変更を保存"}
       </button>
     </form>
   );

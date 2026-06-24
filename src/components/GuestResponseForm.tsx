@@ -158,9 +158,8 @@ export function GuestResponseForm({
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           回答期限を過ぎています。現在は閲覧のみ可能です。
         </div>
-      ) : null}
-
-      <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
+      ) : (
+        <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
         <div>
           <label
             htmlFor="displayName"
@@ -245,7 +244,8 @@ export function GuestResponseForm({
         >
           {submitting ? "送信中..." : storedToken ? "回答を更新" : "回答を送信"}
         </button>
-      </form>
+        </form>
+      )}
     </section>
   );
 }

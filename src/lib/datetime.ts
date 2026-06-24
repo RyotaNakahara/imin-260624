@@ -33,3 +33,19 @@ export function isPastDeadline(deadline: Date | null): boolean {
   if (!deadline) return false;
   return Date.now() > deadline.getTime();
 }
+
+export function validateFutureDeadline(deadline: Date | null): string | null {
+  if (!deadline) return null;
+  if (isPastDeadline(deadline)) {
+    return "回答期限は未来の日時を指定してください";
+  }
+  return null;
+}
+
+export function toJstDateInput(date: Date): string {
+  return formatInTimeZone(date, JST_TIMEZONE, "yyyy-MM-dd");
+}
+
+export function toJstDateTimeLocalInput(date: Date): string {
+  return formatInTimeZone(date, JST_TIMEZONE, "yyyy-MM-dd'T'HH:mm");
+}

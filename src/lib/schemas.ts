@@ -9,6 +9,10 @@ export const createSlotSchema = z.object({
   startAt: z.string().min(1),
 });
 
+export const updateSlotSchema = createSlotSchema.extend({
+  id: z.string().min(1).optional(),
+});
+
 export const createEventSchema = z.object({
   title: z.string().trim().min(1).max(100),
   description: z.string().trim().max(2000).optional().nullable(),
@@ -22,7 +26,7 @@ export const updateEventSchema = z.object({
   title: z.string().trim().min(1).max(100).optional(),
   description: z.string().trim().max(2000).optional().nullable(),
   deadline: z.string().nullable().optional(),
-  slots: z.array(createSlotSchema).min(1).max(30).optional(),
+  slots: z.array(updateSlotSchema).min(1).max(30).optional(),
 });
 
 export const answerInputSchema = z.object({
@@ -47,6 +51,7 @@ export const hostTokenQuerySchema = z.object({
 export type SlotType = z.infer<typeof slotTypeSchema>;
 export type AnswerStatus = z.infer<typeof answerStatusSchema>;
 export type CreateSlotInput = z.infer<typeof createSlotSchema>;
+export type UpdateSlotInput = z.infer<typeof updateSlotSchema>;
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 export type CreateResponseInput = z.infer<typeof createResponseSchema>;

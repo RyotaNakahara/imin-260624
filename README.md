@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# imin — 予定調整 Web アプリ
 
-## Getting Started
+ログイン不要で、ホストが予定候補日を提示し、ゲストが出席可能日を回答できる日程調整アプリです。
 
-First, run the development server:
+## 機能
+
+- ホスト: 予定作成、候補日（日付のみ / 日時）登録、回答期限設定、ゲスト用 URL 共有
+- ゲスト: URL から出席可 / 出席不可を回答（ログイン不要）
+- ホスト: 管理 URL から回答一覧の確認、予定の後から編集
+
+## 技術スタック
+
+- Next.js 16 (App Router) + TypeScript + Tailwind CSS
+- SQLite + Prisma
+- Zod / nanoid / date-fns（JST 固定）
+
+## 必要環境
+
+- Node.js 20 以上（推奨）
+- npm
+
+## セットアップ
 
 ```bash
+# 依存関係のインストール
+npm install
+
+# DB マイグレーション
+npm run db:migrate
+
+# 開発サーバー起動
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで [http://localhost:3000](http://localhost:3000) を開きます。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 環境変数
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`.env` ファイルをプロジェクトルートに作成します。
 
-## Learn More
+| 変数 | 説明 | 例 |
+|------|------|-----|
+| `DATABASE_URL` | SQLite の接続先 | `file:./dev.db` |
 
-To learn more about Next.js, take a look at the following resources:
+`.env` の例:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+DATABASE_URL="file:./dev.db"
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## コマンド
 
-## Deploy on Vercel
+| コマンド | 説明 |
+|----------|------|
+| `npm run dev` | 開発サーバー起動 |
+| `npm run build` | 本番ビルド |
+| `npm run start` | 本番サーバー起動 |
+| `npm run lint` | ESLint 実行 |
+| `npm run db:migrate` | Prisma マイグレーション |
+| `npm run db:generate` | Prisma Client 生成 |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 画面一覧
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| パス | 説明 |
+|------|------|
+| `/` | トップ |
+| `/new` | 予定作成 |
+| `/e/{eventId}` | ゲスト回答 |
+| `/e/{eventId}/created` | 作成完了（リンク表示） |
+| `/e/{eventId}/manage?token={hostToken}` | ホスト管理 |
+
+## データベース
+
+- SQLite ファイル: プロジェクトルートの `dev.db`（`DATABASE_URL` に依存）
+- スキーマ変更時は `npm run db:migrate` を実行
+- `dev.db` は `.gitignore` 対象（ローカルデータ）
+
+## 設計ドキュメント
+
+詳細な仕様は [`docs/design.md`](docs/design.md) を参照してください。

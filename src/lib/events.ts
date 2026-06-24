@@ -9,6 +9,16 @@ import {
 } from "@/lib/datetime";
 import type { CreateSlotInput } from "@/lib/schemas";
 
+export function hasDuplicateSlots(slots: CreateSlotInput[]): boolean {
+  const keys = new Set<string>();
+  for (const slot of slots) {
+    const key = `${slot.type}:${parseSlotStartAt(slot).toISOString()}`;
+    if (keys.has(key)) return true;
+    keys.add(key);
+  }
+  return false;
+}
+
 export function jsonError(message: string, status: number): Response {
   return Response.json({ error: message }, { status });
 }
