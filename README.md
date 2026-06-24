@@ -22,11 +22,14 @@
 ## セットアップ
 
 ```bash
+# 環境変数（.env が無い場合は example からコピー）
+cp .env.example .env
+
 # 依存関係のインストール
 npm install
 
-# DB マイグレーション
-npm run db:migrate
+# DB マイグレーション（初回セットアップ）
+npm run db:setup
 
 # 開発サーバー起動
 npm run dev
@@ -36,17 +39,13 @@ npm run dev
 
 ## 環境変数
 
-`.env` ファイルをプロジェクトルートに作成します。
+`.env` をプロジェクトルートに置きます。リポジトリには `.env.example` があるので、上記の `cp` でコピーできます。
 
 | 変数 | 説明 | 例 |
 |------|------|-----|
 | `DATABASE_URL` | SQLite の接続先 | `file:./dev.db` |
 
-`.env` の例:
-
-```env
-DATABASE_URL="file:./dev.db"
-```
+未設定時は `file:./dev.db` が使われます（`prisma.config.ts` / アプリ共通）。
 
 ## コマンド
 
@@ -56,7 +55,10 @@ DATABASE_URL="file:./dev.db"
 | `npm run build` | 本番ビルド |
 | `npm run start` | 本番サーバー起動 |
 | `npm run lint` | ESLint 実行 |
-| `npm run db:migrate` | Prisma マイグレーション |
+| `npm test` | テスト実行（Vitest） |
+| `npm run test:watch` | テストをウォッチモードで実行 |
+| `npm run db:setup` | 初回 DB セットアップ（マイグレーション適用） |
+| `npm run db:migrate` | スキーマ変更時のマイグレーション作成・適用 |
 | `npm run db:generate` | Prisma Client 生成 |
 
 ## 画面一覧
