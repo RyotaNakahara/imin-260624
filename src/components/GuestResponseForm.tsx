@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { AnswerStatus } from "@/lib/schemas";
 
@@ -71,6 +72,7 @@ export function GuestResponseForm({
   deadlinePassed,
   slots,
 }: GuestResponseFormProps) {
+  const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
@@ -190,6 +192,7 @@ export function GuestResponseForm({
           ? "回答を更新しました。"
           : "回答を送信しました。再編集できるよう保存しています。",
       );
+      router.refresh();
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "回答の送信に失敗しました";

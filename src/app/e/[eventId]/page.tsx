@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { formatJstDateTime } from "@/lib/datetime";
 import { GuestResponseForm } from "@/components/GuestResponseForm";
+import { ResponseSummary } from "@/components/ResponseSummary";
 
 type EventSlot = {
   id: string;
@@ -20,14 +21,24 @@ type EventResponse = {
   slots: EventSlot[];
 };
 
-async function fetchEvent(eventId: string): Promise<EventResponse> {
+type SummarySlot = {
+  slotId: string;
+  available: number;
+  unavailable: number;
+};
+
+type SummaryResponse = {
+  slots: SummarySlot[];
+};
+
+async function fetchFromApi<T>(path: string): Promise<T> {
   const headerStore = await headers();
   const host =
     headerStore.get("x-forwarded-host") ??
     headerStore.get("host") ??
     "localhost:3000";
   const protocol = headerStore.get("x-forwarded-proto") ?? "http";
-  const url = `${protocol}://${host}/api/events/${encodeURIComponent(eventId)}`;
+  const url = `${protocol}://${host}${path}`;
 
   const response = await fetch(url, { cache: "no-store" });
   if (response.status === 404) {
@@ -37,7 +48,38 @@ async function fetchEvent(eventId: string): Promise<EventResponse> {
     throw new Error("予定情報の取得に失敗しました");
   }
 
-  return (await response.json()) as EventResponse;
+  return (await response.json()) as T;
+}
+
+async function fetchEvent(eventId: string): Promise<EventResponse> {
+  return fetchFromApi<EventResponse>(
+    `/api/events/${encodeURIComponent(eventId)}`,
+  );
+}
+
+async function fetchSummary(eventId: string): Promise<SummaryResponse> {
+  return fetchFromApi<SummaryResponse>(
+    `/api/events/${encodeURIComponent(eventId)}/summary`,
+  );
+}
+
+function buildSummaryItems(
+  eventSlots: EventSlot[],
+  summarySlots: SummarySlot[],
+) {
+  const summaryMap = new Map(
+    summarySlots.map((slot) => [slot.slotId, slot]),
+  );
+
+  return eventSlots.map((slot) => {
+    const counts = summaryMap.get(slot.id);
+    return {
+      slotId: slot.id,
+      label: slot.label,
+      available: counts?.available ?? 0,
+      unavailable: counts?.unavailable ?? 0,
+    };
+  });
 }
 
 export default async function GuestEventPage({
@@ -46,7 +88,11 @@ export default async function GuestEventPage({
   params: Promise<{ eventId: string }>;
 }) {
   const { eventId } = await params;
-  const event = await fetchEvent(eventId);
+  const [event, summary] = await Promise.all([
+    fetchEvent(eventId),
+    fetchSummary(eventId),
+  ]);
+  const summaryItems = buildSummaryItems(event.slots, summary.slots);
   const deadlineText = event.deadline
     ? formatJstDateTime(new Date(event.deadline))
     : "未設定";
@@ -76,6 +122,8 @@ export default async function GuestEventPage({
           deadlinePassed={event.deadlinePassed}
           slots={event.slots.map((slot) => ({ id: slot.id, label: slot.label }))}
         />
+
+        <ResponseSummary items={summaryItems} />
       </div>
     </main>
   );

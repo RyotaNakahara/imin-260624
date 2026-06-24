@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { EventEditForm } from "@/components/EventEditForm";
 import { ResponseMatrix } from "@/components/ResponseMatrix";
+import { ResponseSummary } from "@/components/ResponseSummary";
 import { formatJstDateTime } from "@/lib/datetime";
 
 type ManageSlot = {
@@ -68,11 +69,6 @@ export function HostManageDashboard({
     });
   }, [data.responses, data.slots]);
 
-  const maxAvailable = useMemo(
-    () => Math.max(...slotSummaries.map((item) => item.available), 0),
-    [slotSummaries],
-  );
-
   const slotsWithAnswers = useMemo(() => {
     const ids = new Set<string>();
     for (const response of data.responses) {
@@ -113,40 +109,7 @@ export function HostManageDashboard({
           </div>
         </section>
 
-        <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-zinc-900">回答サマリー</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {slotSummaries.map((summary) => {
-              const isBest =
-                maxAvailable > 0 && summary.available === maxAvailable;
-              return (
-                <div
-                  key={summary.slotId}
-                  className={`rounded-md border px-3 py-3 ${
-                    isBest
-                      ? "border-emerald-300 bg-emerald-50"
-                      : "border-zinc-200 bg-zinc-50"
-                  }`}
-                >
-                  <p className="text-sm font-medium text-zinc-900">
-                    {summary.label}
-                  </p>
-                  <p className="mt-1 text-sm text-zinc-700">
-                    出席可: <span className="font-semibold">{summary.available}</span>
-                    {" / "}
-                    出席不可:{" "}
-                    <span className="font-semibold">{summary.unavailable}</span>
-                  </p>
-                  {isBest ? (
-                    <p className="mt-1 text-xs font-medium text-emerald-700">
-                      最多の出席可
-                    </p>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        </section>
+        <ResponseSummary items={slotSummaries} />
 
         <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-zinc-900">回答一覧</h2>
